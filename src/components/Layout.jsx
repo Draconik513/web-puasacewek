@@ -102,7 +102,7 @@ export default function Layout({ children, activePage, setActivePage, pages, ram
                 <span className="text-3xl">🌙</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">
+                <h1 className="text-xl font-bold text-gray-800 dark:text-white">
                   Ramadhan
                 </h1>
                 <p className="text-sm text-primary-600">
@@ -110,6 +110,20 @@ export default function Layout({ children, activePage, setActivePage, pages, ram
                 </p>
               </div>
             </div>
+            
+            {/* Dark Mode Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {isDarkMode ? (
+                <SunIcon className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <MoonIcon className="w-5 h-5 text-gray-700" />
+              )}
+            </motion.button>
           </div>
 
           {/* Countdown Idul Fitri */}
