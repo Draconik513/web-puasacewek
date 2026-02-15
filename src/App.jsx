@@ -33,7 +33,7 @@ function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard ramadhanData={ramadhanData} />;
+        return <Dashboard ramadhanData={ramadhanData} setActivePage={setActivePage} />;
       case 'ibadah':
         return <IbadahTracker />;
       case 'quran':

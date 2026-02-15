@@ -95,34 +95,21 @@ export default function Layout({ children, activePage, setActivePage, pages, ram
         }`}
       >
         <div className="p-6">
-          {/* Logo & Dark Mode */}
+          {/* Logo */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 ramadhan-gradient rounded-2xl flex items-center justify-center">
                 <span className="text-3xl">🌙</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+                <h1 className="text-xl font-bold text-white">
                   Ramadhan
                 </h1>
-                <p className="text-sm text-primary-600 dark:text-primary-400">
+                <p className="text-sm text-primary-600">
                   Journey {ramadhanData.year}H
                 </p>
               </div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={toggleDarkMode}
-              className="p-3 rounded-xl bg-gray-100 dark:bg-gray-700 
-                hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-            >
-              {isDarkMode ? (
-                <SunIcon className="w-5 h-5 text-yellow-500" />
-              ) : (
-                <MoonIcon className="w-5 h-5 text-gray-700" />
-              )}
-            </motion.button>
           </div>
 
           {/* Countdown Idul Fitri */}
@@ -204,22 +191,59 @@ export default function Layout({ children, activePage, setActivePage, pages, ram
           <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-2xl">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Hari ke-{ramadhanData.day} Ramadhan
+                {(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const ramadhanStart = new Date(2026, 1, 18);
+                  if (today < ramadhanStart) {
+                    return 'Menuju Ramadhan';
+                  }
+                  const diffTime = today - ramadhanStart;
+                  const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                  return `Hari ke-${day} Ramadhan`;
+                })()}
               </p>
               <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">
-                {((ramadhanData.day / 30) * 100).toFixed(0)}%
+                {(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const ramadhanStart = new Date(2026, 1, 18);
+                  if (today < ramadhanStart) return '0%';
+                  const diffTime = today - ramadhanStart;
+                  const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                  return `${((day / 30) * 100).toFixed(0)}%`;
+                })()}
               </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: `${(ramadhanData.day / 30) * 100}%` }}
+                animate={{ width: `${(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const ramadhanStart = new Date(2026, 1, 18);
+                  if (today < ramadhanStart) return 0;
+                  const diffTime = today - ramadhanStart;
+                  const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                  return (day / 30) * 100;
+                })()}%` }}
                 transition={{ duration: 1, delay: 0.5 }}
                 className="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full"
               ></motion.div>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-              {30 - ramadhanData.day} hari menuju malam Lailatul Qadar
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const ramadhanStart = new Date(2026, 1, 18);
+                const idulFitri = new Date(2026, 2, 20);
+                if (today < ramadhanStart) {
+                  const daysUntil = Math.ceil((ramadhanStart - today) / (1000 * 60 * 60 * 24));
+                  return `${daysUntil} hari lagi menuju Ramadhan`;
+                }
+                const daysToIdulFitri = Math.ceil((idulFitri - today) / (1000 * 60 * 60 * 24));
+                return `${daysToIdulFitri} hari menuju Idul Fitri`;
+              })()}
             </p>
           </div>
 

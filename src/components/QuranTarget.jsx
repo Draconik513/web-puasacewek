@@ -8,8 +8,15 @@ export default function QuranTarget() {
     perDay: 10,
     perPrayer: 2,
     completed: 0,
-    target: 300 // 30 juz x 10 lembar
+    target: 300
   });
+  
+  const safeTargetPages = {
+    perDay: targetPages?.perDay || 10,
+    perPrayer: targetPages?.perPrayer || 2,
+    completed: targetPages?.completed || 0,
+    target: targetPages?.target || 300
+  };
   
   const [dailyQuranRead, setDailyQuranRead] = useLocalStorage('dailyQuranRead', {});
   const [ibadahList, setIbadahList] = useLocalStorage('ibadahList', []);
@@ -20,17 +27,17 @@ export default function QuranTarget() {
 
   const addPages = (pages) => {
     // Cek jika sudah mencapai target maksimal
-    if (targetPages.completed >= targetPages.target) {
+    if (safeTargetPages.completed >= safeTargetPages.target) {
       alert('Alhamdulillah! Anda sudah menyelesaikan 30 Juz (300 lembar) 🎉');
       return;
     }
 
     const previousTodayRead = todayRead;
-    const newCompleted = Math.min(targetPages.completed + pages, targetPages.target);
+    const newCompleted = Math.min(safeTargetPages.completed + pages, safeTargetPages.target);
     const newTodayRead = todayRead + pages;
     
     setTargetPages({
-      ...targetPages,
+      ...safeTargetPages,
       completed: newCompleted
     });
     
@@ -80,7 +87,7 @@ export default function QuranTarget() {
     }
   };
 
-  const progress = (targetPages.completed / targetPages.target) * 100;
+  const progress = (safeTargetPages.completed / safeTargetPages.target) * 100;
 
   return (
     <div className="space-y-8">
@@ -291,8 +298,8 @@ export default function QuranTarget() {
         <div className="flex items-center justify-between relative z-10">
           <div>
             <p className="text-sm opacity-90">Progress Khatam Quran</p>
-            <p className="text-5xl font-bold mt-2">{targetPages.completed}</p>
-            <p className="text-sm opacity-90 mt-1">dari {targetPages.target} lembar</p>
+            <p className="text-5xl font-bold mt-2">{safeTargetPages.completed}</p>
+            <p className="text-sm opacity-90 mt-1">dari {safeTargetPages.target} lembar</p>
             {progress >= 50 && (
               <motion.p 
                 initial={{ opacity: 0, y: 10 }}
@@ -324,12 +331,12 @@ export default function QuranTarget() {
         <div className="mt-6 grid grid-cols-2 gap-4">
           <div className="bg-white/10 rounded-lg p-3">
             <p className="text-xs opacity-90">Sisa Lembar</p>
-            <p className="text-2xl font-bold">{targetPages.target - targetPages.completed}</p>
+            <p className="text-2xl font-bold">{safeTargetPages.target - safeTargetPages.completed}</p>
           </div>
           <div className="bg-white/10 rounded-lg p-3">
             <p className="text-xs opacity-90">Juz Tersisa</p>
             <p className="text-2xl font-bold">
-              {Math.ceil((targetPages.target - targetPages.completed) / 10)}
+              {Math.ceil((safeTargetPages.target - safeTargetPages.completed) / 10)}
             </p>
           </div>
         </div>
@@ -356,7 +363,7 @@ export default function QuranTarget() {
                       Setelah Sholat {prayer}
                     </span>
                     <span className="text-sm font-semibold text-primary-600">
-                      {targetPages.perPrayer} lembar
+                      {safeTargetPages.perPrayer} lembar
                     </span>
                   </div>
                 ))}
@@ -386,12 +393,12 @@ export default function QuranTarget() {
               {prayerTimes.map((prayer, index) => (
                 <motion.button
                   key={prayer}
-                  whileHover={{ scale: targetPages.completed >= targetPages.target ? 1 : 1.05 }}
-                  whileTap={{ scale: targetPages.completed >= targetPages.target ? 1 : 0.95 }}
-                  onClick={() => addPages(targetPages.perPrayer)}
-                  disabled={targetPages.completed >= targetPages.target}
+                  whileHover={{ scale: safeTargetPages.completed >= safeTargetPages.target ? 1 : 1.05 }}
+                  whileTap={{ scale: safeTargetPages.completed >= safeTargetPages.target ? 1 : 0.95 }}
+                  onClick={() => addPages(safeTargetPages.perPrayer)}
+                  disabled={safeTargetPages.completed >= safeTargetPages.target}
                   className={`p-3 rounded-lg text-center transition-all ${
-                    targetPages.completed >= targetPages.target
+                    safeTargetPages.completed >= safeTargetPages.target
                       ? 'bg-gray-200 dark:bg-gray-700 opacity-50 cursor-not-allowed'
                       : 'bg-gray-50 dark:bg-gray-700/30 hover:bg-primary-50 dark:hover:bg-primary-900/30'
                   }`}
@@ -399,24 +406,24 @@ export default function QuranTarget() {
                   <span className="text-xl mb-1 block">📖</span>
                   <span className="text-xs text-gray-600 dark:text-gray-400">{prayer}</span>
                   <span className="text-xs font-semibold text-primary-600 block mt-1">
-                    +{targetPages.perPrayer}
+                    +{safeTargetPages.perPrayer}
                   </span>
                 </motion.button>
               ))}
             </div>
 
             <motion.button
-              whileHover={{ scale: targetPages.completed >= targetPages.target ? 1 : 1.02 }}
-              whileTap={{ scale: targetPages.completed >= targetPages.target ? 1 : 0.98 }}
-              onClick={() => addPages(targetPages.perDay)}
-              disabled={targetPages.completed >= targetPages.target}
+              whileHover={{ scale: safeTargetPages.completed >= safeTargetPages.target ? 1 : 1.02 }}
+              whileTap={{ scale: safeTargetPages.completed >= safeTargetPages.target ? 1 : 0.98 }}
+              onClick={() => addPages(safeTargetPages.perDay)}
+              disabled={safeTargetPages.completed >= safeTargetPages.target}
               className={`w-full mt-2 ${
-                targetPages.completed >= targetPages.target
+                safeTargetPages.completed >= safeTargetPages.target
                   ? 'bg-gray-400 cursor-not-allowed opacity-50'
                   : 'btn-primary'
               }`}
             >
-              {targetPages.completed >= targetPages.target ? '✅ Khatam Selesai' : 'Selesai Baca 1 Juz'}
+              {safeTargetPages.completed >= safeTargetPages.target ? '✅ Khatam Selesai' : 'Selesai Baca 1 Juz'}
             </motion.button>
           </div>
         </div>
@@ -431,22 +438,22 @@ export default function QuranTarget() {
           <AchievementCard 
             icon="📖" 
             title="Juz 1-5" 
-            unlocked={targetPages.completed >= 50}
+            unlocked={safeTargetPages.completed >= 50}
           />
           <AchievementCard 
             icon="📚" 
             title="Juz 6-10" 
-            unlocked={targetPages.completed >= 100}
+            unlocked={safeTargetPages.completed >= 100}
           />
           <AchievementCard 
             icon="🕋" 
             title="Juz 11-20" 
-            unlocked={targetPages.completed >= 200}
+            unlocked={safeTargetPages.completed >= 200}
           />
           <AchievementCard 
             icon="🤲" 
             title="Khatam 30 Juz" 
-            unlocked={targetPages.completed >= 300}
+            unlocked={safeTargetPages.completed >= 300}
           />
         </div>
       </div>

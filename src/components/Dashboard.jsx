@@ -5,7 +5,7 @@ import JadwalSholat from './JadwalSholat';
 import TasbihDigital from './TasbihDigital';
 import DoaHarian from './DoaHarian';
 
-export default function Dashboard({ ramadhanData }) {
+export default function Dashboard({ ramadhanData, setActivePage }) {
   const [quote, setQuote] = useState({});
   const [ibadahList] = useLocalStorage('ibadahList', []);
   const [quranPages] = useLocalStorage('quranPages', { completed: 0, target: 300 });
@@ -27,31 +27,33 @@ export default function Dashboard({ ramadhanData }) {
     setQuote(islamicQuotes[randomIndex]);
   }, []);
 
-  // Calculate fasting days from 18 Feb 2026 to 20 March 2026 (30 days)
+  // Calculate fasting days from 18 Feb 2026 to 19 March 2026 (30 days)
   const calculateFastingDay = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const ramadhanStart = new Date(2026, 1, 18); // 18 Feb 2026
-    const ramadhanEnd = new Date(2026, 2, 19); // 19 March 2026 (30 days)
+    const ramadhanEnd = new Date(2026, 2, 19); // 19 March 2026 (hari ke-30)
+    const idulFitri = new Date(2026, 2, 20); // 20 March 2026
     
     if (today < ramadhanStart) {
       const daysUntil = Math.ceil((ramadhanStart - today) / (1000 * 60 * 60 * 24));
-      return { day: 0, remaining: daysUntil };
+      return { day: 0, remaining: daysUntil, status: 'before' };
     } else if (today > ramadhanEnd) {
-      return { day: 30, remaining: 0 };
+      return { day: 30, remaining: 0, status: 'after' };
     } else {
-      const diffTime = Math.abs(today - ramadhanStart);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return { day: Math.min(diffDays, 30), remaining: Math.max(30 - diffDays, 0) };
+      const diffTime = today - ramadhanStart;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      const daysToIdulFitri = Math.ceil((idulFitri - today) / (1000 * 60 * 60 * 24));
+      return { day: diffDays, remaining: daysToIdulFitri, status: 'during' };
     }
   };
 
-  const { day: fastingDay, remaining: remainingDays } = calculateFastingDay();
+  const { day: fastingDay, remaining: remainingDays, status: ramadhanStatus } = calculateFastingDay();
 
   // Calculate today's ibadah progress
   const completedIbadah = ibadahList.filter(i => i.completed).length;
   const totalIbadah = ibadahList.length || 13;
-  const ibadahProgress = totalIbadah > 0 ? Math.round((completedIbadah / totalIbadah) * 100) : 0;
+  const ibadahProgress = ramadhanStatus === 'before' ? 0 : (totalIbadah > 0 ? Math.round((completedIbadah / totalIbadah) * 100) : 0);
 
   // Calculate Quran progress
   const quranProgress = ((quranPages.completed / quranPages.target) * 100).toFixed(1);
@@ -71,10 +73,10 @@ export default function Dashboard({ ramadhanData }) {
 
   const stats = [
     { 
-      title: 'Hari Puasa', 
-      value: fastingDay, 
+      title: ramadhanStatus === 'before' ? 'Menuju Ramadhan' : `Hari ke-${fastingDay} Ramadhan`, 
+      value: ramadhanStatus === 'before' ? `${remainingDays} hari lagi` : `${ibadahProgress}%`, 
       icon: '🌙', 
-      change: fastingDay === 0 ? `${remainingDays} hari lagi` : remainingDays > 0 ? `${remainingDays} hari lagi` : 'Selesai',
+      change: ramadhanStatus === 'before' ? 'Bersiap-siap' : `${remainingDays} hari menuju Idul Fitri`,
       color: 'from-blue-500 to-cyan-500'
     },
     { 
@@ -201,28 +203,28 @@ export default function Dashboard({ ramadhanData }) {
             title="Baca Quran" 
             action="Mulai membaca"
             color="from-emerald-500 to-teal-500"
-            link="#quran"
+            onClick={() => setActivePage('quran')}
           />
           <QuickActionCard 
             icon="💰" 
             title="Sedekah" 
             action="Catat sedekah"
             color="from-yellow-500 to-amber-500"
-            link="#sedekah"
+            onClick={() => setActivePage('sedekah')}
           />
           <QuickActionCard 
             icon="📿" 
             title="Dzikir" 
             action="Tasbih digital"
             color="from-purple-500 to-indigo-500"
-            link="#tasbih"
+            onClick={() => document.querySelector('#tasbih')?.scrollIntoView({ behavior: 'smooth' })}
           />
           <QuickActionCard 
             icon="🤲" 
             title="Doa" 
             action="Doa harian"
             color="from-pink-500 to-rose-500"
-            link="#doa"
+            onClick={() => document.querySelector('#doa')?.scrollIntoView({ behavior: 'smooth' })}
           />
         </div>
       </div>
@@ -230,19 +232,12 @@ export default function Dashboard({ ramadhanData }) {
   );
 }
 
-function QuickActionCard({ icon, title, action, color, link }) {
-  const handleClick = () => {
-    const element = document.querySelector(link);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
+function QuickActionCard({ icon, title, action, color, onClick }) {
   return (
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      onClick={handleClick}
+      onClick={onClick}
       className="ramadhan-card text-left relative overflow-hidden group cursor-pointer"
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity`}></div>

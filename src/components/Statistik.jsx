@@ -40,15 +40,25 @@ export default function Statistik() {
   const [refleksi] = useLocalStorage('refleksi', []);
   const [sedekahList] = useLocalStorage('sedekahList', []);
   const [weeklyProgress] = useLocalStorage('weeklyProgress', []);
+  const [haidHistory] = useLocalStorage('haidHistory', []);
 
-  // Hitung puasa bolong otomatis dari ibadah puasa
+  // Hitung puasa bolong otomatis dari ibadah puasa dan hari haid
   const puasaIbadah = ibadahList.find(i => i.name === 'Puasa');
   const ramadhanStart = new Date(2026, 1, 18);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const daysElapsed = today >= ramadhanStart ? Math.floor((today - ramadhanStart) / (1000 * 60 * 60 * 24)) + 1 : 0;
+  
+  // Hitung hari haid selama Ramadhan
+  const haidDays = haidHistory?.filter(entry => {
+    const entryDate = new Date(entry.date);
+    entryDate.setHours(0, 0, 0, 0);
+    return entry.isHaid && entryDate >= ramadhanStart && entryDate <= today;
+  }).length || 0;
+  
   const fastingBreaks = puasaIbadah?.completed ? 0 : (daysElapsed > 0 ? 1 : 0);
-  const fastingConsistency = daysElapsed > 0 ? Math.round(((daysElapsed - fastingBreaks) / daysElapsed) * 100) : 0;
+  const totalFastingBreaks = fastingBreaks + haidDays;
+  const fastingConsistency = daysElapsed > 0 ? Math.round(((daysElapsed - totalFastingBreaks) / daysElapsed) * 100) : 0;
 
   // Cari hari paling produktif dari weeklyProgress
   const hariProduktif = weeklyProgress[0]?.days
@@ -408,11 +418,24 @@ export default function Statistik() {
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-              <span className="text-gray-700 dark:text-gray-300">Puasa bolong</span>
+              <span className="text-gray-700 dark:text-gray-300">Puasa bolong / haid</span>
               <span className="font-bold text-red-600 dark:text-red-400">
-                {fastingBreaks} hari
+                {totalFastingBreaks} hari
               </span>
             </div>
+            {haidDays > 0 && (
+              <div className="flex justify-between items-center p-3 bg-pink-50 dark:bg-pink-900/20 rounded-xl border border-pink-200 dark:border-pink-800">
+                <div className="flex-1">
+                  <span className="text-pink-700 dark:text-pink-300 block">🌸 Karena haid</span>
+                  <span className="text-xs text-pink-600 dark:text-pink-400 mt-1 block">
+                    Perlu diganti setelah Ramadhan
+                  </span>
+                </div>
+                <span className="font-bold text-pink-600 dark:text-pink-400">
+                  {haidDays} hari
+                </span>
+              </div>
+            )}
             <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
               <span className="text-gray-700 dark:text-gray-300">Target khatam</span>
               <span className="font-bold text-primary-600 dark:text-primary-400">

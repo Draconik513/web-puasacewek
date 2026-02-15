@@ -9,7 +9,20 @@ export default function DoaHarian({ mobile = false }) {
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * doaHarian.length);
     setDoa(doaHarian[randomIndex]);
+    
+    // Auto change every 4 minutes (240000 ms)
+    const interval = setInterval(() => {
+      const newRandomIndex = Math.floor(Math.random() * doaHarian.length);
+      setDoa(doaHarian[newRandomIndex]);
+    }, 240000);
+    
+    return () => clearInterval(interval);
   }, []);
+  
+  const changeDoa = () => {
+    const randomIndex = Math.floor(Math.random() * doaHarian.length);
+    setDoa(doaHarian[randomIndex]);
+  };
 
   if (!doa) return null;
 
@@ -41,14 +54,11 @@ export default function DoaHarian({ mobile = false }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <span className="text-2xl">📖</span>
-          <h3 className="font-semibold text-gray-800 dark:text-white">Doa Harian</h3>
+          <h3 className="font-semibold text-white">Doa Harian</h3>
         </div>
         <button
-          onClick={() => {
-            const randomIndex = Math.floor(Math.random() * doaHarian.length);
-            setDoa(doaHarian[randomIndex]);
-          }}
-          className="text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+          onClick={changeDoa}
+          className="text-xs bg-gray-800 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 transition font-medium"
         >
           Ganti Doa
         </button>

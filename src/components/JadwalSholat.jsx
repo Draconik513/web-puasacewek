@@ -71,17 +71,9 @@ export default function JadwalSholat({ mobile = false }) {
           <span className="text-2xl">🕌</span>
           <h3 className="font-semibold text-gray-800 dark:text-white">Jadwal Sholat</h3>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-            {location}
-          </span>
-          <button 
-            onClick={fetchJadwalSholat}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-          >
-            🔄
-          </button>
-        </div>
+        <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+          {location}
+        </span>
       </div>
 
       {loading ? (

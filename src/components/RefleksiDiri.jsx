@@ -141,11 +141,6 @@ export default function RefleksiDiri() {
                   transition={{ duration: 2, repeat: Infinity }}
                   className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full blur-2xl opacity-30"
                 />
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, linear: true }}
-                  className="absolute inset-0 border-2 border-transparent border-t-green-400 border-r-emerald-400 rounded-full"
-                />
               </>
             )}
             <p className="text-sm text-gray-600 dark:text-gray-400 relative z-10">

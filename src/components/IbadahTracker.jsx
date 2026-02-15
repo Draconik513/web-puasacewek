@@ -10,8 +10,46 @@ export default function IbadahTracker() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedWeek, setSelectedWeek] = useState(0);
+  const [menuBukaChecked, setMenuBukaChecked] = useLocalStorage('menuBukaChecked', {});
   
   const [ibadahList, setIbadahList] = useLocalStorage('ibadahList', []);
+  const [isHaid, setIsHaid] = useLocalStorage('isHaid', false);
+  const [haidHistory, setHaidHistory] = useLocalStorage('haidHistory', []);
+
+  // Update haid history setiap kali isHaid berubah
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString();
+    
+    setHaidHistory(prev => {
+      const filtered = prev.filter(entry => entry.date !== todayStr);
+      return [...filtered, { date: todayStr, isHaid }];
+    });
+    
+    // Auto-add "Membantu Siapkan Menu Buka" saat haid aktif
+    if (isHaid) {
+      const menuBukaExists = ibadahList.some(i => i.id === 'menu-buka-haid');
+      if (!menuBukaExists) {
+        setIbadahList(prev => [
+          ...prev,
+          {
+            id: 'menu-buka-haid',
+            name: 'Membantu Siapkan Menu Buka',
+            completed: menuBukaChecked[new Date().toDateString()] || false,
+            wajib: false,
+            category: 'custom',
+            custom: false,
+            haidOnly: true,
+            points: 10
+          }
+        ]);
+      }
+    } else {
+      // Remove menu buka saat haid nonaktif
+      setIbadahList(prev => prev.filter(i => i.id !== 'menu-buka-haid'));
+    }
+  }, [isHaid]);
 
   const defaultIbadahList = [
     { id: 1, name: 'Sholat Subuh', completed: false, wajib: true, category: 'sholat', time: '04:30', points: 6 },
@@ -43,14 +81,6 @@ export default function IbadahTracker() {
   useEffect(() => {
     if (!weeklyProgress || weeklyProgress.length === 0) {
       const ramadhanStart = new Date(2026, 1, 18); // 18 Feb 2026
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (today < ramadhanStart) {
-        setWeeklyProgress([]);
-        return;
-      }
-      
       const weekStart = new Date(ramadhanStart);
       weekStart.setHours(0, 0, 0, 0);
       const weekEnd = new Date(weekStart);
@@ -60,12 +90,10 @@ export default function IbadahTracker() {
       for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(day.getDate() + i);
-        if (day <= today) {
-          days.push({
-            date: day.toISOString(),
-            progress: 0,
-          });
-        }
+        days.push({
+          date: day.toISOString(),
+          progress: 0,
+        });
       }
       
       setWeeklyProgress([{
@@ -98,12 +126,27 @@ export default function IbadahTracker() {
 
   const toggleIbadah = (id) => {
     const ibadah = ibadahList.find(i => i.id === id);
+    
+    // Cek jika sedang haid dan ibadah adalah shalat (wajib & sunnah) atau puasa
+    if (isHaid && (ibadah?.category === 'sholat' || ibadah?.category === 'sholat-sunnah' || ibadah?.name === 'Puasa')) {
+      return; // Tidak bisa toggle saat haid
+    }
+    
+    // Save menu buka checked state
+    if (id === 'menu-buka-haid') {
+      const today = new Date().toDateString();
+      setMenuBukaChecked(prev => ({
+        ...prev,
+        [today]: !ibadah?.completed
+      }));
+    }
+    
     const dailyQuranRead = JSON.parse(localStorage.getItem('dailyQuranRead') || '{}');
     const today = new Date().toDateString();
     const todayRead = dailyQuranRead[today] || 0;
     
-    // Cek jika Baca Quran dan belum 1 juz
-    if (ibadah?.name === 'Baca Quran' && !ibadah.completed && todayRead < 10) {
+    // Cek jika Baca Quran dan belum 1 juz - SKIP validasi jika sedang haid
+    if (!isHaid && ibadah?.name === 'Baca Quran' && !ibadah.completed && todayRead < 10) {
       alert('Anda harus membaca minimal 1 juz (10 lembar) di halaman Target Khatam terlebih dahulu!');
       return;
     }
@@ -115,8 +158,13 @@ export default function IbadahTracker() {
       
       // Update progress dengan data terbaru
       setTimeout(() => {
-        const completedPoints = updated.filter(i => i.completed).reduce((sum, i) => sum + (i.points || 0), 0);
-        const totalPoints = updated.reduce((sum, i) => sum + (i.points || 0), 0);
+        // Jika sedang haid, exclude shalat (wajib & sunnah) dan puasa dari perhitungan
+        const relevantIbadah = isHaid 
+          ? updated.filter(i => i.category !== 'sholat' && i.category !== 'sholat-sunnah' && i.name !== 'Puasa')
+          : updated;
+        
+        const completedPoints = relevantIbadah.filter(i => i.completed).reduce((sum, i) => sum + (i.points || 0), 0);
+        const totalPoints = relevantIbadah.reduce((sum, i) => sum + (i.points || 0), 0);
         const progress = totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0;
 
         setWeeklyProgress(prevWeek => {
@@ -144,8 +192,14 @@ export default function IbadahTracker() {
 
   const updateTodayProgress = () => {
     const today = new Date().toISOString();
-    const completedPoints = ibadahList.filter(i => i.completed).reduce((sum, i) => sum + (i.points || 0), 0);
-    const totalPoints = ibadahList.reduce((sum, i) => sum + (i.points || 0), 0);
+    
+    // Jika sedang haid, exclude shalat (wajib & sunnah) dan puasa dari perhitungan
+    const relevantIbadah = isHaid 
+      ? ibadahList.filter(i => i.category !== 'sholat' && i.category !== 'sholat-sunnah' && i.name !== 'Puasa')
+      : ibadahList;
+    
+    const completedPoints = relevantIbadah.filter(i => i.completed).reduce((sum, i) => sum + (i.points || 0), 0);
+    const totalPoints = relevantIbadah.reduce((sum, i) => sum + (i.points || 0), 0);
     const progress = totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0;
 
     setWeeklyProgress(prev => {
@@ -231,8 +285,13 @@ export default function IbadahTracker() {
     ? ibadahList 
     : ibadahList.filter(item => item.category === activeCategory);
 
-  const completedPoints = ibadahList.filter(i => i.completed).reduce((sum, i) => sum + (i.points || 0), 0);
-  const totalPoints = ibadahList.reduce((sum, i) => sum + (i.points || 0), 0);
+  // Jika sedang haid, exclude shalat (wajib & sunnah) dan puasa dari perhitungan
+  const relevantIbadah = isHaid 
+    ? ibadahList.filter(i => i.category !== 'sholat' && i.category !== 'sholat-sunnah' && i.name !== 'Puasa')
+    : ibadahList;
+  
+  const completedPoints = relevantIbadah.filter(i => i.completed).reduce((sum, i) => sum + (i.points || 0), 0);
+  const totalPoints = relevantIbadah.reduce((sum, i) => sum + (i.points || 0), 0);
   const todayProgress = totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0;
 
   // Calculate week average - hanya dari hari yang sudah lewat
@@ -287,6 +346,44 @@ export default function IbadahTracker() {
           🔄 Reset Data
         </motion.button>
       </div>
+
+      {/* Mode Haid Toggle */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="ramadhan-card bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-800"
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="haidMode"
+              checked={isHaid}
+              onChange={(e) => setIsHaid(e.target.checked)}
+              className="mt-1 w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
+            />
+            <div>
+              <label htmlFor="haidMode" className="font-medium text-pink-800 dark:text-pink-300 cursor-pointer">
+                🌸 Saya sedang haid
+              </label>
+              {isHaid && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-3 p-3 bg-white dark:bg-pink-900/30 rounded-lg"
+                >
+                  <p className="text-sm text-pink-700 dark:text-pink-300 leading-relaxed">
+                    🌸 <strong>Kamu sedang dalam fase istirahat yang Allah berikan.</strong>
+                  </p>
+                  <p className="text-xs text-pink-600 dark:text-pink-400 mt-2">
+                    Shalat dan puasa otomatis di-nonaktifkan. Tetap bisa isi dzikir, doa, refleksi, dan sedekah. Progress dihitung netral.
+                  </p>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Progress Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -658,7 +755,7 @@ export default function IbadahTracker() {
       </div>
 
       {/* Weekly Progress Table - NEW */}
-      {currentWeekData && currentWeekData.days.length > 0 ? (
+      {currentWeekData && currentWeekData.days.length > 0 && (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -709,8 +806,13 @@ export default function IbadahTracker() {
             <tbody>
               {currentWeekData?.days.map((day, index) => {
                 const date = new Date(day.date);
-                const isToday = date.toDateString() === new Date().toDateString();
-                const isFuture = date > new Date();
+                const ramadhanStart = new Date(2026, 1, 18);
+                ramadhanStart.setHours(0, 0, 0, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const isFuture = today < ramadhanStart || date > today;
+                const isToday = date.toDateString() === today.toDateString() && today >= ramadhanStart;
                 const progress = isFuture ? null : day.progress;
                 
                 return (
@@ -829,21 +931,6 @@ export default function IbadahTracker() {
           </div>
         </div>
       </motion.div>
-      ) : (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="ramadhan-card text-center py-12"
-      >
-        <p className="text-4xl mb-4">📅</p>
-        <p className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-          Grafik Mingguan Akan Tersedia
-        </p>
-        <p className="text-gray-600 dark:text-gray-400">
-          Mulai dari tanggal 18 Februari 2026
-        </p>
-      </motion.div>
       )}
 
       {/* Categories */}
@@ -928,33 +1015,60 @@ export default function IbadahTracker() {
               }`}
             >
               <div className="flex items-center space-x-4">
-                <motion.button
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => toggleIbadah(ibadah.id)}
-                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center
-                    ${ibadah.completed 
-                      ? 'bg-green-500 border-green-500 text-white' 
-                      : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                >
-                  {ibadah.completed && <CheckIcon className="w-4 h-4" />}
-                </motion.button>
+                {isHaid && (ibadah.category === 'sholat' || ibadah.category === 'sholat-sunnah' || ibadah.name === 'Puasa') ? (
+                  <div className="w-7 h-7 rounded-full border-2 border-pink-300 dark:border-pink-700 bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                    <span className="text-xs">🌸</span>
+                  </div>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => toggleIbadah(ibadah.id)}
+                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center
+                      ${ibadah.completed 
+                        ? 'bg-green-500 border-green-500 text-white' 
+                        : ibadah.haidOnly
+                        ? 'border-pink-400 dark:border-pink-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                  >
+                    {ibadah.completed && <CheckIcon className="w-4 h-4" />}
+                  </motion.button>
+                )}
                 <div>
                   <p className={`font-medium ${
                     ibadah.completed 
                       ? 'text-gray-500 line-through dark:text-gray-400' 
+                      : isHaid && (ibadah.category === 'sholat' || ibadah.category === 'sholat-sunnah' || ibadah.name === 'Puasa')
+                      ? 'text-pink-400 dark:text-pink-500'
+                      : ibadah.haidOnly
+                      ? 'text-pink-600 dark:text-pink-400'
                       : 'text-gray-800 dark:text-white'
                   }`}>
-                    {ibadah.name}
+                    {ibadah.haidOnly && '🍽️ '}{isHaid && ibadah.name === 'Baca Quran' ? 'Baca Terjemahan Quran' : ibadah.name}
                     {ibadah.wajib && (
                       <span className="ml-2 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-2 py-0.5 rounded-full">
                         Wajib
                       </span>
                     )}
-                    {ibadah.custom && (
+                    {ibadah.custom && !ibadah.haidOnly && (
                       <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-2 py-0.5 rounded-full">
                         Custom
+                      </span>
+                    )}
+                    {ibadah.haidOnly && (
+                      <span className="ml-2 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 px-2 py-0.5 rounded-full">
+                        Khusus Haid
+                      </span>
+                    )}
+                    {isHaid && ibadah.name === 'Baca Quran' && (
+                      <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                        Opsional
+                      </span>
+                    )}
+                    {isHaid && (ibadah.category === 'sholat' || ibadah.category === 'sholat-sunnah' || ibadah.name === 'Puasa') && (
+                      <span className="ml-2 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 px-2 py-0.5 rounded-full">
+                        Exempt
                       </span>
                     )}
                   </p>
@@ -965,13 +1079,13 @@ export default function IbadahTracker() {
                   )}
                   {ibadah.target && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      🎯 {ibadah.target}
+                      🎯 {isHaid && ibadah.name === 'Baca Quran' ? 'Baca terjemahan' : ibadah.target}
                     </p>
                   )}
                 </div>
               </div>
               
-              {ibadah.custom && (
+              {ibadah.custom && !ibadah.haidOnly && (
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}

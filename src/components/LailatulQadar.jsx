@@ -70,6 +70,13 @@ export default function LailatulQadar() {
   }, []);
 
   const calculateDayProgress = (date) => {
+    const firstQadarDate = new Date(2026, 2, 10); // 10 Maret 2026
+    firstQadarDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (today < firstQadarDate) return 0;
+    
     const dateStr = date.toDateString();
     const dayData = lailatulQadarData[dateStr];
     if (!dayData) return 0;
@@ -95,11 +102,13 @@ export default function LailatulQadar() {
   };
 
   const isDateAvailable = (date) => {
+    const firstQadarDate = new Date(2026, 2, 10); // 10 Maret 2026
+    firstQadarDate.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const checkDate = new Date(date);
     checkDate.setHours(0, 0, 0, 0);
-    return checkDate <= today;
+    return today >= firstQadarDate && checkDate <= today;
   };
 
   const SplashEffect = () => (
@@ -211,7 +220,7 @@ export default function LailatulQadar() {
                 className={`ramadhan-card relative overflow-hidden ${
                   item.ganjil ? 'border-2 border-yellow-400 dark:border-yellow-500' : ''
                 } ${
-                  !dateAvailable ? 'opacity-85 blur-sm pointer-events-none' : ''
+                  !dateAvailable ? 'opacity-85 pointer-events-none' : ''
                 }`}
               >
                 {item.ganjil && (
@@ -291,7 +300,7 @@ export default function LailatulQadar() {
 
               {!dateAvailable && (
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
-                  🔒 Terbuka pada {format(item.date, 'EEEE', { locale: id })}, {format(item.date, 'dd MMMM yyyy', { locale: id })}
+                  ⏳ Akan Datang - Terbuka pada {format(item.date, 'EEEE', { locale: id })}, {format(item.date, 'dd MMMM yyyy', { locale: id })}
                 </p>
               )}
             </div>
