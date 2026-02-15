@@ -243,7 +243,7 @@ export default function IbadahTracker() {
   const downloadWeeklyReport = () => {
     const reportData = [
       ['LAPORAN PROGRESS IBADAH MINGGUAN'],
-      ['Ramadhan Journey 1447 H'],
+      ['Ramadhan Journey 1446 H'],
       [''],
       [`Periode: ${weekRangeText}`],
       [''],
